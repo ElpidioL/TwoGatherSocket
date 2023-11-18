@@ -21,11 +21,11 @@ socketIO.on("connection", (socket) => {
 
 	socket.on("createRoom", (id, name) => {
 		let result = chatRooms.filter((room) => room.id == id);
-		socket.join(id, name);
 		if(result.length === 0){
 			chatRooms.unshift({ id: id, name, messages: [] });
 			socket.emit("roomsList", chatRooms);
 		}
+		socket.join(id, name);
 	});
 
 	socket.on("findRoom", (id) => {
@@ -34,11 +34,10 @@ socketIO.on("connection", (socket) => {
 	});
 
 	socket.on("newMessage", (data) => {
-		const { room_id, message, user, timestamp, pkeSentBy, pkeReceiver, idSentBy, many} = data;
-		
+		const { room_id, message, user, timestamp, pkeSentBy, pkeReceiver, idSentBy, many, dbId} = data;
 		let result = chatRooms.filter((room) => room.id == room_id);
 		const newMessage = {
-			id: generateID(),
+			id: `${idSentBy}-${generateID()}`,
 			text: message,
 			user,
 			time: `${timestamp.hour}:${timestamp.mins}`,
@@ -46,7 +45,8 @@ socketIO.on("connection", (socket) => {
 			pkeReceiver: pkeReceiver,
 			idSentBy: idSentBy,
 			bySocket: true,
-			many: many
+			many: many,
+			dbId: dbId
 		};
 		result[0].messages.push(newMessage);
 		socket.to(room_id).emit("roomMessage", newMessage);
@@ -56,6 +56,16 @@ socketIO.on("connection", (socket) => {
 		socket.disconnect();
 		console.log("🔥: A user disconnected");
 	});
+
+	socket.on("messageReaded", (data) => {
+		const { room_id, message_id, dbMessage_id} = data;
+		message = {
+			id: message_id,
+			dbId: dbMessage_id
+		}
+		socket.to(room_id).emit("messageReaded", message);
+		socket.emit("messageReaded", message);
+	})
 });
 
 app.get("/api", (req, res) => {
