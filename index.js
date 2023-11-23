@@ -30,7 +30,13 @@ socketIO.on("connection", (socket) => {
 
 	socket.on("findRoom", (id) => {
 		let result = chatRooms.filter((room) => room.id == id);
-		socket.emit("foundRoom", result[0].messages);
+		if (result && Array.isArray(result) && result.length > 0) {
+			if (result[0]) {
+				if (result[0].messages) {
+					socket.emit("foundRoom", result[0].messages);
+				}
+			}
+		}
 	});
 
 	socket.on("newMessage", (data) => {
@@ -48,9 +54,15 @@ socketIO.on("connection", (socket) => {
 			many: many,
 			dbId: dbId
 		};
-		result[0].messages.push(newMessage);
-		socket.to(room_id).emit("roomMessage", newMessage);
-		socket.emit("roomMessage", newMessage);
+		if (result && Array.isArray(result) && result.length > 0) {
+			if (result[0]) {
+				if (result[0].messages) {
+					result[0].messages.push(newMessage);
+					socket.to(room_id).emit("roomMessage", newMessage);
+					socket.emit("roomMessage", newMessage);
+				}
+			}
+		}
 	});
 	socket.on("disconnect", () => {
 		socket.disconnect();
